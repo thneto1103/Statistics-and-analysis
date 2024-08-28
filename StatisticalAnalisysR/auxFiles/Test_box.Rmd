@@ -1,0 +1,156 @@
+#primeiro mundo >= 50k
+#segundo mundo >= 10k
+#terceiro mundo >= 0
+```{r}
+XsquaredDataaux = XsquaredData[c(-42,-58),]
+row.names(XsquaredDataaux) <- NULL
+print(XsquaredDataaux)
+```
+
+
+
+```{r}
+PibPerCapitaValue = cbind(as.numeric(NumericDataClean[,1],NumericDataClean[,4]))
+PibPrimeiroMundo = PibPerCapitaValue[PibPerCapitaValue[,2]>=50000,]
+PibSegundoMundo = PibPerCapitaValue[PibPerCapitaValue<=50000 & PibPerCapitaValue>=10000]
+PibTerceiroMundo = PibPerCapitaValue[PibPerCapitaValue<=10000]
+Primeiro_Mundo <- data.frame(
+  PibValue = PibPerCapitaValue[PibPerCapitaValue>=50000],
+  World = rep("1",length(PibPrimeiroMundo))
+)
+Segundo_Mundo <- data.frame(
+  PibValue = PibPerCapitaValue[PibPerCapitaValue<=50000 & PibPerCapitaValue>=10000],
+  World = rep("2",length(PibSegundoMundo))
+)
+Terceiro_Mundo <- data.frame(
+  PibValue = PibPerCapitaValue[PibPerCapitaValue<=10000],
+  World = rep("3",length(PibTerceiroMundo))
+)
+WorldDivision <- rbind(Primeiro_Mundo,Segundo_Mundo)
+WorldDivision <- rbind(WorldDivision,Terceiro_Mundo)
+print(WorldDivision)
+```
+
+```{r}
+XsquaredDataaux = XsquaredData[c(-42,-58),]
+row.names(XsquaredDataaux) <- NULL
+data <- data.frame(
+  SocialIndicatives = as.factor(XsquaredDataaux[,2]),
+  Mundo = as.factor(XsquaredDataaux[,4])
+)
+# Create a contingency table
+contingency_table <- table(data$SocialIndicatives, data$Mundo)
+
+# View the contingency table
+print("Contingency table:")
+print(contingency_table)
+
+# Perform the chi-squared test for independence
+chi_squared_test <- chisq.test(contingency_table)
+
+# View the summary of the chi-squared test
+print("Chi-squared test result:")
+print(chi_squared_test)
+
+# Extract the chi-squared statistic and degrees of freedom
+chi_squared_statistic <- chi_squared_test$statistic
+df <- chi_squared_test$parameter
+
+# Define the range for the x-axis
+x <- seq(0, max(10, chi_squared_statistic + 2), length.out = 100)
+
+# Plot the chi-squared distribution
+plot(x, dchisq(x, df), type = "l", lwd = 2, col = "blue",
+     main = "Chi-Squared Distribution",
+     xlab = "Chi-Squared Value", ylab = "Density")
+
+# Add a vertical line for the chi-squared statistic
+abline(v = chi_squared_statistic, col = "red", lwd = 2, lty = 2)
+
+# Add a vertical line for the critical value at alpha = 0.05
+critical_value <- qchisq(0.95, df)
+abline(v = critical_value, col = "green", lwd = 2, lty = 2)
+
+# Add a legend
+legend("topright", legend = c("Chi-Squared Distribution", "Chi-Squared Statistic", "Critical Value (alpha = 0.05)"),
+       col = c("blue", "red", "green"), lwd = 2, lty = c(1, 2, 2))
+
+# Mosaic plot for chi-squared test
+mosaicplot(contingency_table, main = "Mosaic Plot for Chi-Squared Test", color = TRUE)
+```
+
+```{r}
+LifeExpecValue = cbind(NumericDataClean[,1],as.numeric(NumericDataClean[,2]))
+ExpectativaAlta = LifeExpecValue[LifeExpecValue[,2]>=80,]
+ExpectativaMedia = LifeExpecValue[LifeExpecValue<=80 & LifeExpecValue>=70]
+ExpectativaBaixa = LifeExpecValue[LifeExpecValue<=70]
+Expectativa_Alta <- data.frame(
+  LifeExpec = LifeExpecValue[LifeExpecValue[,2]>=80],
+  Classification = rep("Alta",length(ExpectativaAlta))
+)
+Expectativa_Media <- data.frame(
+  LifeExpec = LifeExpecValue[LifeExpecValue[,2]<=80 & LifeExpecValue[,2]>=70],
+  Classification = rep("Media",length(ExpectativaMedia))
+)
+Expectativa_Baixa <- data.frame(
+  LifeExpec = LifeExpecValue[LifeExpecValue[,2]<=70],
+  Classification = rep("Baixa",length(ExpectativaBaixa))
+)
+LifeExpecDivision <- rbind(Expectativa_Alta,Expectativa_Media)
+LifeExpecDivision <- rbind(LifeExpecDivision,Expectativa_Baixa)
+
+colnames(LifeExpecValue) = c("Code","LifeExpec")
+colnames(LifeExpecDivision) = c("Code","Classification")
+LifeExpecDivisionaux <- merge(LifeExpecDivision,LifeExpecValue, by = "Code")
+XsquaredDataaux2 <- merge(LifeExpecDivisionaux,DataSubset_CodexIdh, by = "Code")
+XsquaredDataaux2 = XsquaredDataaux2[c(-92,-99),]
+row.names(XsquaredDataaux2) <- NULL
+print(XsquaredDataaux2)
+```
+
+```{r}
+data <- data.frame(
+  SocialIndicatives = as.factor(XsquaredDataaux2[,4]),
+  Classification = as.factor(XsquaredDataaux2[,2])
+)
+# Create a contingency table
+contingency_table <- table(data$SocialIndicatives, data$Classification)
+
+# View the contingency table
+print("Contingency table:")
+print(contingency_table)
+
+# Perform the chi-squared test for independence
+chi_squared_test <- chisq.test(contingency_table)
+
+# View the summary of the chi-squared test
+print("Chi-squared test result:")
+print(chi_squared_test)
+
+# Extract the chi-squared statistic and degrees of freedom
+chi_squared_statistic <- chi_squared_test$statistic
+df <- chi_squared_test$parameter
+
+# Define the range for the x-axis
+x <- seq(0, max(10, chi_squared_statistic + 2), length.out = 100)
+
+# Plot the chi-squared distribution
+plot(x, dchisq(x, df), type = "l", lwd = 2, col = "blue",
+     main = "Chi-Squared Distribution",
+     xlab = "Chi-Squared Value", ylab = "Density")
+
+# Add a vertical line for the chi-squared statistic
+abline(v = chi_squared_statistic, col = "red", lwd = 2, lty = 2)
+
+# Add a vertical line for the critical value at alpha = 0.05
+critical_value <- qchisq(0.95, df)
+abline(v = critical_value, col = "green", lwd = 2, lty = 2)
+
+# Add a legend
+legend("topright", legend = c("Chi-Squared Distribution", "Chi-Squared Statistic", "Critical Value (alpha = 0.05)"),
+       col = c("blue", "red", "green"), lwd = 2, lty = c(1, 2, 2))
+
+# Mosaic plot for chi-squared test
+mosaicplot(contingency_table, main = "Mosaic Plot for Chi-Squared Test", color = TRUE)
+```
+

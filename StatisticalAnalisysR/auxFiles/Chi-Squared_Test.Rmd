@@ -1,0 +1,57 @@
+```{r}
+library(ggplot2)
+library(vcd)
+
+# Create a sample dataframe
+XsquaredDataaux = XsquaredData[-42,]
+XsquaredDataaux = XsquaredDataaux[-58,]
+data <- data.frame(
+  Gender = as.factor(XsquaredDataaux[,2]),
+  Preference = as.factor(XsquaredDataaux[,4])
+)
+
+# View the original dataframe
+print("Original dataframe:")
+print(data)
+
+# Create a contingency table
+contingency_table <- table(data$Gender, data$Preference)
+
+# View the contingency table
+print("Contingency table:")
+print(contingency_table)
+
+# Perform the chi-squared test for independence
+chi_squared_test <- chisq.test(contingency_table)
+
+# View the summary of the chi-squared test
+print("Chi-squared test result:")
+print(chi_squared_test)
+
+# Extract the chi-squared statistic and degrees of freedom
+chi_squared_statistic <- chi_squared_test$statistic
+df <- chi_squared_test$parameter
+
+# Define the range for the x-axis
+x <- seq(0, max(10, chi_squared_statistic + 2), length.out = 100)
+
+# Plot the chi-squared distribution
+plot(x, dchisq(x, df), type = "l", lwd = 2, col = "blue",
+     main = "Chi-Squared Distribution",
+     xlab = "Chi-Squared Value", ylab = "Density")
+
+# Add a vertical line for the chi-squared statistic
+abline(v = chi_squared_statistic, col = "red", lwd = 2, lty = 2)
+
+# Add a vertical line for the critical value at alpha = 0.05
+critical_value <- qchisq(0.95, df)
+abline(v = critical_value, col = "green", lwd = 2, lty = 2)
+
+# Add a legend
+legend("topright", legend = c("Chi-Squared Distribution", "Chi-Squared Statistic", "Critical Value (alpha = 0.05)"),
+       col = c("blue", "red", "green"), lwd = 2, lty = c(1, 2, 2))
+
+# Mosaic plot for chi-squared test
+mosaicplot(contingency_table, main = "Mosaic Plot for Chi-Squared Test", color = TRUE)
+```
+

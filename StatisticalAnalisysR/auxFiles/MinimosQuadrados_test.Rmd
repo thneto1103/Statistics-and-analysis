@@ -1,0 +1,32 @@
+```{r}
+library(MASS)
+
+data <- NumericDataClean
+
+# View the first few rows of the data
+print("First few rows of the data:")
+print(head(data))
+
+# View the structure of the data
+print("Structure of the data:")
+str(data)
+
+# Simple Linear Regression using Least Squares Method
+lsm_model <- lm(PibPerCapita  ~ LifeExpec, data = data)
+
+# Summary of the model
+print("Summary of the least squares model:")
+summary(lsm_model)
+
+# Plot the data points and the regression line
+plot(data$LifeExpec, data$PibPerCapita, main = "Least Squares Regression",
+     xlab = "Life Expectation", ylab = "Pib Per Capita",
+     pch = 19, col = "blue")
+abline(lsm_model, col = "red", lwd = 2)
+
+# Plot the residuals
+plot(lsm_model$fitted.values, lsm_model$residuals, main = "Residual Plot",
+     xlab = "Fitted Values", ylab = "Residuals", pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+```
+

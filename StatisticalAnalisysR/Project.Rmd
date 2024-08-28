@@ -1,0 +1,324 @@
+```{r}
+#install.packages("ggplot2")
+#install.packages("mice")
+#install.packages("dplyr")
+#install.packages("vcd")
+```
+
+```{r}
+  Data = merge(ExpecVidaFormated,FormalEducatedPopulationF)
+  colnames(IDH) <- c("ISO3","Human Development Groups","HDI Rank (2021)")
+  IDH = IDH[2:196,]
+  row.names(IDH) <- NULL
+  Data = merge(Data,IDH)
+  Data = merge(Data,PibPerCapitaFormated)
+  Data = Data[!duplicated(Data[,"Code"]),]
+  Data <- Data[complete.cases(Data),]
+  
+  row.names(Data) <- NULL
+```
+
+```{r}
+NumericData <- Data
+NumericData$LifeExpec <- as.numeric(NumericData$LifeExpec)
+NumericData$PibPerCapita <- as.numeric(gsub(",", "", NumericData$PibPerCapita))
+NumericData$FormalEducatedPopulation <- as.numeric(NumericData$FormalEducatedPopulation)
+colnames(NumericData)[colnames(NumericData) == "HDI Rank (2021)"] <- "IDHRank"
+NumericData$IDHRank <- as.numeric(NumericData$IDHRank)
+NumericDataT <- NumericData[,-4]
+NumericDataT <- NumericDataT[,-4]
+row.names(NumericData) <- NULL
+NumericDataT$LifeExpec <- as.numeric(NumericDataT$LifeExpec)
+NumericDataT$FormalEducatedPopulation <- as.numeric(NumericDataT$FormalEducatedPopulation)
+NumericDataT$IDHRank <- as.numeric(NumericDataT$IDHRank)
+NumericDataT$PibPerCapita <- as.numeric(NumericDataT$PibPerCapita)
+row.names(NumericDataT) <- NULL
+print(NumericDataT)
+```
+
+```{r}
+library(dplyr)
+library(mice)
+clean_data <- function(df) {
+  df <- df %>% 
+    mutate(across(everything(), ~ifelse(is.nan(.), NA, .))) %>%  # Coverte NaN em Na
+    mutate(across(everything(), ~ifelse(is.infinite(.), NA, .))) # Converte inf em Na 
+  
+  # Trata os valores NA
+  imputed_data <- mice(df, m = 1, maxit = 50, meth = 'pmm', seed = 500)
+  cleaned_df <- complete(imputed_data, 1)
+  
+  return(cleaned_df)
+}
+```
+
+```{r}
+NumericDataClean <- clean_data(NumericDataT)
+data <- NumericDataClean
+
+# Mostra a estrutura dos dados 
+print("Estrutura dos dados:")
+str(data)
+
+# Regressão Linear Simples usando o Método dos Mínimos Quadrados
+lsm_model <- lm(PibPerCapita  ~ LifeExpec, data = data)
+
+# Sumário do modelo
+print("Sumário do Método de mínimos quadrados:")
+summary(lsm_model)
+
+# Plota os pontos e a linha de regressão
+plot(data$LifeExpec, data$PibPerCapita, main = "Regressão dos Mínimos Quadrados",
+     xlab = "Expectativa de vida", ylab = "Pib Per Capita",
+     pch = 19, col = "blue")
+abline(lsm_model, col = "red", lwd = 2)
+
+# Plota os resíduos
+plot(lsm_model$fitted.values, lsm_model$residuals, main = "Plot dos Resíduos",
+     xlab = "Valores Ajustados", ylab = "Resíduos", pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+```
+
+```{r}
+# Regressão Linear Simples usando o Método dos Mínimos Quadrados
+lsm_model <- lm(IDHRank  ~ LifeExpec, data = data)
+
+# Sumário do modelo
+print("Sumário do Modelo de Mínimos Quadrados:")
+summary(lsm_model)
+
+# Plota os pontos e a linha de regressão
+plot(data$LifeExpec, data$IDHRank, main = "Least Squares Regression",
+     xlab = "Life Expectation", ylab = "IDH quantitativo",
+     pch = 19, col = "blue")
+abline(lsm_model, col = "red", lwd = 2)
+
+# Plota os resíduos
+plot(lsm_model$fitted.values, lsm_model$residuals, main = "Plot dos Resíduos",
+     xlab = "Valores Ajustados", ylab = "Resíduos", pch = 19, col = "blue")
+abline(h = 0, col = "red", lwd = 2)
+```
+
+```{r}
+data <- data.frame(
+  group = Data[,5],
+  value = NumericDataClean[,2]
+)
+
+data$group <- as.factor(data$group)
+
+print("`Primeiras Linhas de Dados:")
+print(head(data))
+
+# Passo 2: Realiza teste ANOVA
+anova_model <- aov(value ~ group, data = data)
+print("Sumário do Teste ANOVA")
+summary(anova_model)
+
+# Passo 3: Plota a distribuição F e os resultados do ANOVA
+anova_summary <- summary(anova_model)
+f_statistic <- anova_summary[[1]]$`F value`[1]
+df1 <- anova_summary[[1]]$Df[1]
+df2 <- anova_summary[[1]]$Df[2]
+x <- seq(0, max(10, f_statistic + 2), length.out = 100)
+plot(x, df(x, df1, df2), type = "l", lwd = 2, col = "blue",
+     main = "Distribuição F para ANOVA",
+     xlab = "Valor de F", ylab = "Densidade")
+abline(v = f_statistic, col = "red", lwd = 2, lty = 2)
+critical_value <- qf(0.95, df1, df2)
+abline(v = critical_value, col = "green", lwd = 2, lty = 2)
+legend("topright", legend = c("Distribuição F", "Estatística F", "Valor Crítico (alfa = 0.05)"),
+       col = c("blue", "red", "green"), lwd = 2, lty = c(1, 2, 2))
+
+# Passo 4: Boxplot dos Grupos
+boxplot(value ~ group, data = data, main = "Boxplot dos Grupos de IDH",
+        xlab = "IDH qualitativo", ylab = "Expectativa de Vida", col = "lightblue")
+```
+
+```{r}
+data <- data.frame(
+  group = Data[,5],
+  value = NumericDataClean[,5]
+)
+
+data$group <- as.factor(data$group)
+
+print("First few rows of the data:")
+print(head(data))
+
+# Passo 2: Realiza teste ANOVA
+anova_model <- aov(value ~ group, data = data)
+print("Summary of the ANOVA test:")
+summary(anova_model)
+
+# Passo 3: Plota a distribuição F e os resultados do ANOVA
+anova_summary <- summary(anova_model)
+f_statistic <- anova_summary[[1]]$`F value`[1]
+df1 <- anova_summary[[1]]$Df[1]
+df2 <- anova_summary[[1]]$Df[2]
+x <- seq(0, max(10, f_statistic + 2), length.out = 100)
+plot(x, df(x, df1, df2), type = "l", lwd = 2, col = "blue",
+     main = "Distribuição F para ANOVA",
+     xlab = "Valor de F", ylab = "Densidade")
+abline(v = f_statistic, col = "red", lwd = 2, lty = 2)
+critical_value <- qf(0.95, df1, df2)
+abline(v = critical_value, col = "green", lwd = 2, lty = 2)
+legend("topright", legend = c("Distribuição F", "Estatística F", "Valor Crítico (alfa = 0.05)"),
+       col = c("blue", "red", "green"), lwd = 2, lty = c(1, 2, 2))
+
+# Passo 4: Boxplot dos Grupos
+boxplot(value ~ group, data = data, main = "Boxplot dos Groups",
+        xlab = "Grupos para o IDH qualitativo", ylab = "Valor do Pib Per Capita associado", col = "lightblue")
+```
+
+```{r}
+PibPerCapitaValue = cbind(NumericDataClean[,1],as.numeric(NumericDataClean[,5]))
+PibPrimeiroMundo = PibPerCapitaValue[PibPerCapitaValue[,2]>=50000,]
+Primeiro_Mundo <- cbind(PibPerCapitaValue[PibPerCapitaValue[,2]>=50000,1],PibPerCapitaValue[PibPerCapitaValue[,2]>=50000,2])
+Primeiro_Mundo <- cbind(Primeiro_Mundo,rep("1",length(Primeiro_Mundo[,1])))
+
+Segundo_Mundo <- cbind(PibPerCapitaValue[PibPerCapitaValue[,2]<=50000&PibPerCapitaValue[,2]>=20000,1],PibPerCapitaValue[PibPerCapitaValue[,2]<=50000&PibPerCapitaValue[,2]>=20000,2])
+Segundo_Mundo <- cbind(Segundo_Mundo,rep("2",length(Segundo_Mundo[,1])))
+
+Terceiro_Mundo <- cbind(PibPerCapitaValue[PibPerCapitaValue[,2]<=20000,1],PibPerCapitaValue[PibPerCapitaValue[,2]<=20000,2])
+Terceiro_Mundo <- cbind(Terceiro_Mundo,rep("3",length(Terceiro_Mundo[,1])))
+print(length(Primeiro_Mundo[,1]))
+
+WorldDivision = rbind(Primeiro_Mundo,Segundo_Mundo)
+WorldDivision = rbind(WorldDivision,Terceiro_Mundo)
+colnames(WorldDivision) = c("Code","PibPerCapita","WorldClass")
+DataSubset_CodexIdh = Data[,c("Code","Human Development Groups")]
+XsquaredData = merge(DataSubset_CodexIdh,WorldDivision,by = "Code")
+print(XsquaredData)
+```
+
+
+```{r}
+library(ggplot2)
+library(vcd)
+
+XsquaredDataaux = XsquaredData[c(-42,-58),]
+row.names(XsquaredDataaux) <- NULL
+data <- data.frame(
+  SocialIndicatives = as.factor(XsquaredDataaux[,2]),
+  Mundo = as.factor(XsquaredDataaux[,4])
+)
+# Cria Tabela de Contingência
+contingency_table <- table(data$SocialIndicatives, data$Mundo)
+
+# Ver a Tabela de Contingência
+print("Contingency table:")
+print(contingency_table)
+
+# Realiza o teste qui-quadrado para independência
+chi_squared_test <- chisq.test(contingency_table)
+
+# Ver o sumário do teste qui-quadrado
+print("Resultado do Teste Qui-Quadrado:")
+print(chi_squared_test)
+
+# Extrai o teste qui-quadrado e os graus de liberdade
+chi_squared_statistic <- chi_squared_test$statistic
+df <- chi_squared_test$parameter
+
+# Define o intervalo do eixo x
+x <- seq(0, max(10, chi_squared_statistic + 2), length.out = 100)
+
+# Plota a distribuição qui-quadrado
+plot(x, dchisq(x, df), type = "l", lwd = 2, col = "blue",
+     main = "Distribuição Qui-Quadrado",
+     xlab = "Valor Qui-Quadrado", ylab = "Densidade")
+
+# Adiciona a linha vertical para a estatística do qui-quadrado
+abline(v = chi_squared_statistic, col = "red", lwd = 2, lty = 2)
+
+# Adiciona a linha vertical para o valor crítico em alfa = 0.05
+critical_value <- qchisq(0.95, df)
+abline(v = critical_value, col = "green", lwd = 2, lty = 2)
+
+# Adiciona a legenda
+legend("topright", legend = c("Distribuição Qui-Quadrado", "Estatística Qui-Quadrado", "Valor Crítico (alfa = 0.05)"),
+       col = c("blue", "red", "green"), lwd = 2, lty = c(1, 2, 2))
+
+# Plot mosaico para o teste qui-quadrado
+mosaicplot(contingency_table, main = "Plot Mosaico para o Teste Qui-Quadrado", color = TRUE)
+xlabel = "Social Indicators"
+```
+
+
+```{r}
+LifeExpecValue = cbind(NumericDataClean[,1],as.numeric(NumericDataClean[,2]))
+ExpectativaAlta = LifeExpecValue[LifeExpecValue[,2]>=80,]
+ExpectativaMedia = LifeExpecValue[LifeExpecValue<=80 & LifeExpecValue>=70]
+ExpectativaBaixa = LifeExpecValue[LifeExpecValue<=70]
+Expectativa_Alta <- data.frame(
+  LifeExpec = LifeExpecValue[LifeExpecValue[,2]>=80],
+  Classification = rep("Alta",length(ExpectativaAlta))
+)
+Expectativa_Media <- data.frame(
+  LifeExpec = LifeExpecValue[LifeExpecValue[,2]<=80 & LifeExpecValue[,2]>=70],
+  Classification = rep("Media",length(ExpectativaMedia))
+)
+Expectativa_Baixa <- data.frame(
+  LifeExpec = LifeExpecValue[LifeExpecValue[,2]<=70],
+  Classification = rep("Baixa",length(ExpectativaBaixa))
+)
+LifeExpecDivision <- rbind(Expectativa_Alta,Expectativa_Media)
+LifeExpecDivision <- rbind(LifeExpecDivision,Expectativa_Baixa)
+
+colnames(LifeExpecValue) = c("Code","LifeExpec")
+colnames(LifeExpecDivision) = c("Code","Classification")
+LifeExpecDivisionaux <- merge(LifeExpecDivision,LifeExpecValue, by = "Code")
+XsquaredDataaux2 <- merge(LifeExpecDivisionaux,DataSubset_CodexIdh, by = "Code")
+XsquaredDataaux2 = XsquaredDataaux2[c(-92,-99),]
+row.names(XsquaredDataaux2) <- NULL
+print(XsquaredDataaux2)
+```
+
+
+```{r}
+data <- data.frame(
+  SocialIndicatives = as.factor(XsquaredDataaux2[,4]),
+  Classification = as.factor(XsquaredDataaux2[,2])
+)
+# Cria Tabela de Contingência
+contingency_table <- table(data$SocialIndicatives, data$Classification)
+
+# Ver a Tabela de Contingência
+print("Contingency table:")
+print(contingency_table)
+
+# Realiza o teste qui-quadrado para independência
+chi_squared_test <- chisq.test(contingency_table)
+
+# Ver o sumário do teste qui-quadrado
+print("Resultado do Teste Qui-Quadrado:")
+print(chi_squared_test)
+
+# Extrai a estatística do qui-quadrado e graus de liberdade
+chi_squared_statistic <- chi_squared_test$statistic
+df <- chi_squared_test$parameter
+
+# Define o intervalo do eixo x
+x <- seq(0, max(10, chi_squared_statistic + 2), length.out = 100)
+
+# Plota a distribuição qui-quadrado
+plot(x, dchisq(x, df), type = "l", lwd = 2, col = "blue",
+     main = "Distribuição Qui-Quadrado",
+     xlab = "Valor Qui-Quadrado", ylab = "Densidade")
+
+# Adiciona a linha vertical para a estatística qui-quadrado
+abline(v = chi_squared_statistic, col = "red", lwd = 2, lty = 2)
+
+# Adiciona a linha vertical para o valor crítico em alfa = 0.05
+critical_value <- qchisq(0.95, df)
+abline(v = critical_value, col = "green", lwd = 2, lty = 2)
+
+# Adiciona a legenda
+legend("topright", legend = c("Distribuição Qui-Quadrado", "Estatística Qui-QUadrado", "Valor Crítico (alfa = 0.05)"),
+       col = c("blue", "red", "green"), lwd = 2, lty = c(1, 2, 2))
+
+# Plot Mosaico para o teste qui-quadrado
+mosaicplot(contingency_table, main = "Plot Mosaico para o Teste Qui-Quadrado", color = TRUE)
+```
+
